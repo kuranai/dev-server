@@ -106,7 +106,7 @@ MaxAuthTries 3
 ClientAliveInterval 300
 ClientAliveCountMax 2
 EOF
-        sudo systemctl reload sshd
+        sudo systemctl reload ssh
         log_info "SSH hardened. Use 'ssh kuranai@<ip>' for future connections."
     else
         log_info "WARNING: No SSH keys found. Skipping SSH hardening to prevent lockout."
@@ -295,6 +295,10 @@ set -sg escape-time 10
 
 # Enable 256 colors
 set -g default-terminal "screen-256color"
+
+# Enable extended keys (for Shift+Enter, etc.)
+set -s extended-keys on
+set -as terminal-features 'xterm*:extkeys'
 EOF
 fi
 
