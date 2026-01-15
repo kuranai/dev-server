@@ -174,6 +174,50 @@ else
 fi
 
 # ============================================
+# Install Programming Languages via mise
+# ============================================
+export PATH="$HOME/.local/bin:$PATH"
+
+if command -v mise &> /dev/null; then
+    log_info "Installing Node.js via mise..."
+    mise use --global node@lts
+
+    log_info "Installing PHP via mise..."
+    mise use --global php@latest
+
+    log_info "Installing Ruby via mise..."
+    mise use --global ruby@latest
+else
+    log_info "WARNING: mise not found, skipping language installations"
+fi
+
+# ============================================
+# Configure weekly mise upgrades via cron
+# ============================================
+MISE_CRON="/etc/cron.weekly/mise-upgrade"
+
+if [ -f "$MISE_CRON" ]; then
+    log_skip "mise weekly upgrade cron job already configured"
+else
+    log_info "Configuring weekly mise upgrades..."
+    sudo tee "$MISE_CRON" > /dev/null << 'EOF'
+#!/bin/bash
+# Weekly mise upgrade for all users with mise installed
+
+for user_home in /root /home/*; do
+    if [ -x "$user_home/.local/bin/mise" ]; then
+        user=$(basename "$user_home")
+        [ "$user_home" = "/root" ] && user="root"
+
+        su - "$user" -c 'export PATH="$HOME/.local/bin:$PATH" && mise upgrade --yes' \
+            >> /var/log/mise-upgrade.log 2>&1
+    fi
+done
+EOF
+    sudo chmod +x "$MISE_CRON"
+fi
+
+# ============================================
 # Install Neovim dependencies (for LazyVim)
 # ============================================
 log_info "Installing Neovim/LazyVim dependencies..."
@@ -319,6 +363,7 @@ echo "  - mosh (for reliable SSH connections)"
 echo "  - tmux (with auto-attach to 'main' session)"
 echo "  - Claude CLI"
 echo "  - mise (for managing programming languages)"
+echo "  - Node.js, PHP, Ruby (via mise, auto-updated weekly)"
 echo "  - Neovim (latest from GitHub releases)"
 echo "  - LazyVim (Neovim distribution)"
 echo ""
@@ -331,4 +376,6 @@ echo ""
 echo "Next SSH/mosh connection will auto-attach to tmux."
 echo ""
 echo "Run 'nvim' to complete LazyVim plugin installation."
+echo ""
+echo "Mise upgrade logs: /var/log/mise-upgrade.log"
 echo ""
